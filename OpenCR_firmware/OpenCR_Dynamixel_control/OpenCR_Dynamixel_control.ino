@@ -45,7 +45,7 @@ void printInst();
 void setup() 
 {
   Serial.begin(57600);
-  while(!Serial); // Open a Serial Monitor  
+  //while(!Serial); // Open a Serial Monitor  
 
   printInst();
 
@@ -75,7 +75,7 @@ void loop()
   if (Serial.available())
   {
     String read_string = Serial.readStringUntil('\n');
-    Serial.println("[CMD] : " + String(read_string));
+    //Serial.println("[CMD] : " + String(read_string));
 
     read_string.trim();
 
