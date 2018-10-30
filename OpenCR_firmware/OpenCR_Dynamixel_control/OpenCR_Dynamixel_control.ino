@@ -38,6 +38,8 @@ uint8_t ping_cnt = 0;
 uint8_t dxl_id[2] = {DXL_ID_1, DXL_ID_2};
 uint8_t dxl_cnt = 2;
 
+unsigned long pm1,pm2_5,pm10,pm1_cf1,pm2_5_cf1,pm10_cf1,n0_3,n0_5,n1,n2_5,n5,n10= 0;
+
 bool isAvailableID(uint8_t id);
 void split(String data, char separator, String* temp);
 void printInst();
@@ -45,6 +47,7 @@ void printInst();
 void setup() 
 {
   Serial.begin(57600);
+  Serial1.begin(9600);
   //while(!Serial); // Open a Serial Monitor  
 
   printInst();
@@ -59,15 +62,13 @@ void setup()
   //scan
   dxl_wb.scan(get_id, &scan_cnt, dxl_cnt);
 
-      if (scan_cnt == 0)
-        Serial.println("Can't find Dynamixel");
-      else
-      {
-        Serial.println("Find " + String(scan_cnt) + " Dynamixels");
-        for (int cnt = 0; cnt < scan_cnt; cnt++)
-          Serial.println("ID : " + String(get_id[cnt]));
-      }
-    
+  if (scan_cnt == 0)
+    Serial.println("Can't find Dynamixel");
+  else{
+    Serial.println("Find " + String(scan_cnt) + " Dynamixels");
+    for (int cnt = 0; cnt < scan_cnt; cnt++)
+       Serial.println("ID : " + String(get_id[cnt]));
+    } 
 }
 
 void loop() 
@@ -105,17 +106,41 @@ void loop()
     }
     
       
-      else if (cmd[0] == "enable")
-      {
-        uint8_t onoff = cmd[1].toInt();
+    else if (cmd[0] == "enable")
+    {
+      uint8_t onoff = cmd[1].toInt();
 
-        if (dxl_wb.itemWrite(1, "Torque_Enable", onoff)&&dxl_wb.itemWrite(2, "Torque_Enable", onoff))
+      if (dxl_wb.itemWrite(1, "Torque_Enable", onoff)&&dxl_wb.itemWrite(2, "Torque_Enable", onoff))
         
-          Serial.println("Succeed to enable");
-        else
-          Serial.println("Failed");
+        Serial.println("Succeed to enable");
+      else
+        Serial.println("Failed");
+    }
+
+    else if (cmd[0] == "read_PM")
+    {
+      int len=31;
+      unsigned char buf[len];
+      if (Serial1.read()==0x42){
+        Serial1.readBytes(buf,len);
+        if(buf[0] == 0x4d){
+          if(checkValue(buf,len)){
+            pm1=((buf[9]<<8) + buf[10]); 
+            pm2_5=((buf[11]<<8) + buf[12]);
+            pm10=((buf[13]<<8) + buf[14]);
+            n0_3=((buf[15]<<8) + buf[16]);
+            n0_5=((buf[17]<<8) + buf[18]);
+            n1=((buf[19]<<8) + buf[20]);
+            n2_5=((buf[21]<<8) + buf[22]);
+            n5=((buf[23]<<8) + buf[24]);
+            n10=((buf[25]<<8) + buf[26]);
+            show_on_Serial();
+          }      
+        }
       }
-      else if (cmd[0] == "set_pos")
+    }
+    
+    else if (cmd[0] == "set_pos")
       {
         for (int cnt = 0; cnt < dxl_cnt; cnt++)
         {
@@ -251,6 +276,44 @@ bool isAvailableID(uint8_t id)
   return false;
 }
 
+char checkValue(unsigned char *thebuf, char leng)
+{  
+  char receiveflag=0;
+  int receiveSum=0;
+ 
+  for(int i=0; i<(leng-2); i++){
+    receiveSum=receiveSum+thebuf[i];
+  }
+  receiveSum=receiveSum + 0x42;
+  
+  if(receiveSum == ((thebuf[leng-2]<<8)+thebuf[leng-1]))  //check the serial data 
+  {
+    receiveSum = 0;
+    receiveflag = 1;
+  }
+  return receiveflag;
+}
+
+void show_on_Serial(){
+  Serial.print(pm1);
+  Serial.print(","); 
+  Serial.print(pm2_5);
+  Serial.print(","); 
+  Serial.print(pm10);
+  Serial.print(","); 
+  Serial.print(n0_3);
+  Serial.print(","); 
+  Serial.print(n0_5);
+  Serial.print(","); 
+  Serial.print(n1);
+  Serial.print(","); 
+  Serial.print(n2_5);
+  Serial.print(",");
+  Serial.print(n5);
+  Serial.print(",");  
+  Serial.println(n10); 
+  }
+
 void printInst(void)
 {
   Serial.println("-------------------------------------");
@@ -259,6 +322,7 @@ void printInst(void)
   Serial.println("help");
   Serial.println("ping   (ID)");
   Serial.println("enable (1 or 0)");
+  Serial.println("read_PM");
   Serial.println("set_pos (pos1) (pos2)");
   Serial.println("set_vel (vel1) (vel2)");
   Serial.println("read (ID) (ADDRESS_NAME)");
