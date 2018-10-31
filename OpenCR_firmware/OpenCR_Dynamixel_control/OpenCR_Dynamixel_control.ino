@@ -186,8 +186,8 @@ void loop()
         dxl_wb.initBulkWrite();
 
         
-        uint16_t vel0 = cmd[1].toInt();
-        uint16_t vel1 = cmd[2].toInt();
+        int32_t vel0 = cmd[1].toInt();
+        int32_t vel1 = cmd[2].toInt();
         
         dxl_wb.addBulkWriteParam(dxl_id[0], "Goal_Velocity", vel0);
         dxl_wb.addBulkWriteParam(dxl_id[1], "Goal_Velocity", vel1);
